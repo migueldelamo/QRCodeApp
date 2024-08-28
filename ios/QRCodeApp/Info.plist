@@ -48,5 +48,20 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>$(PRODUCT_NAME) needs access to your Camera.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+	  <dict>
+	    <key>CFBundleTypeRole</key>
+	    <string>Editor</string>
+	    <key>CFBundleURLName</key>
+	    <string>com.migueldelamo.QRCodeApp</string> <!-- Puedes usar tu Bundle ID aquí -->
+	    <key>CFBundleURLSchemes</key>
+	    <array>
+	      <string>com.googleusercontent.apps.809725300075-3ct5p3b3c7jlqkodg90ishvjce5qda9d</string> <!-- Tu REVERSED_CLIENT_ID -->
+	    </array>
+	  </dict>
+	</array>
 </dict>
 </plist>
