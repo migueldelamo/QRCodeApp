@@ -8,7 +8,7 @@ import {
 import axios from 'axios';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RouteProp, useFocusEffect} from '@react-navigation/native';
-import {ArrowLeft} from 'phosphor-react-native';
+import {ArrowLeft, CameraRotate} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
 import {Storage} from '../storage/storage';
 import {
@@ -17,6 +17,12 @@ import {
   SheetDataObject,
   SPREADSHEET_ID,
 } from '../api/sheets';
+import {Animated} from 'react-native';
+
+const av = new Animated.Value(0);
+av.addListener(() => {
+  return;
+});
 
 type RootStackParamList = {
   Scanner: undefined;
@@ -38,7 +44,7 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
 
   const data = useRef<SheetDataObject>({});
   const devices = useCameraDevices();
-  const device = devices[0];
+  const [device, setDevice] = useState(devices[0]);
 
   useFocusEffect(
     useCallback(() => {
@@ -65,8 +71,13 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
       if (codes.length > 0 && data.current) {
         setIsScannerActive(false);
         const value = codes[0].value ?? '';
-        const scannedData = parseInt(value, 10);
-        if (jornada && data.current[jornada].values.includes(scannedData)) {
+        const scannedData = parseInt(value);
+        // const scannedData = 978;
+        if (
+          (jornada && data.current[jornada].values.includes(scannedData)) ||
+          scannedData < 0 ||
+          scannedData > 1000
+        ) {
           navigation.navigate('Failure', {scannedData});
         } else {
           try {
@@ -90,7 +101,9 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
                       ],
                       start: {
                         sheetId: 0,
-                        rowIndex: data.current[jornada].values.length + 1, // Índice de la fila (0 para la primera fila, 1 para la segunda, etc.)
+                        rowIndex:
+                          data.current[jornada].values.filter(item => item > 0)
+                            .length + 1, // Índice de la fila (0 para la primera fila, 1 para la segunda, etc.)
                         columnIndex: data.current[jornada].colIndex, // Índice de la columna (0 para la primera columna, 1 para la segunda, etc.)
                       },
                       fields: 'userEnteredValue',
@@ -173,7 +186,19 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
             marginRight: 16,
             marginTop: 10,
             marginBottom: 10,
-          }}></Pressable>
+          }}
+          onPress={() => {
+            const cameraType = device.name.toLowerCase().includes('front')
+              ? 'back'
+              : 'front';
+            setDevice(
+              devices.find(item =>
+                item.name.toLowerCase().includes(cameraType),
+              ) ?? devices[0],
+            );
+          }}>
+          <CameraRotate color="white" size={32} />
+        </Pressable>
       </View>
       <View
         style={{

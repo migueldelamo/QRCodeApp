@@ -15,6 +15,12 @@ import {RouteProp, useFocusEffect} from '@react-navigation/native';
 import {Storage} from '../storage/storage';
 import {SheetDataObject, getAccessToken, getDataFromSheet} from '../api/sheets';
 import {Camera} from 'react-native-vision-camera';
+import {Animated} from 'react-native';
+
+const av = new Animated.Value(0);
+av.addListener(() => {
+  return;
+});
 
 type RootStackParamList = {
   Scanner: undefined;
@@ -29,6 +35,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const {setJornada} = useJornada();
   const [jornadas, setJornadas] = useState<string[]>([]);
   const [hasPermission, setHasPermission] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const accessToken = useRef<string>('');
   const sheetData = useRef<SheetDataObject>();
 
@@ -42,22 +49,44 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
 
   useFocusEffect(
     useCallback(() => {
+      let isActive = true;
       (async () => {
-        const token = await Storage.getToken();
-        if (token) {
-          accessToken.current = token;
-        } else {
-          const token = await getAccessToken();
-          if (token) accessToken.current = token;
-        }
-        const response = await getDataFromSheet();
-        if (response) {
-          sheetData.current = response;
-          setJornadas(Object.keys(response));
+        try {
+          setIsLoading(true);
+          const token = await Storage.getToken();
+          if (token) {
+            accessToken.current = token;
+          } else {
+            const newToken = await getAccessToken();
+            if (newToken) {
+              accessToken.current = newToken;
+              await Storage.setToken(newToken); // Asegúrate de almacenar el nuevo token
+            }
+          }
+
+          if (accessToken.current) {
+            const response = await getDataFromSheet();
+            if (response && isActive) {
+              sheetData.current = response;
+              setJornadas(Object.keys(response));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        } finally {
+          if (isActive) setIsLoading(false);
         }
       })();
+
+      return () => {
+        isActive = false;
+      };
     }, []),
   );
+
+  useEffect(() => {
+    if (jornadas.length > 0) setIsLoading(false);
+  }, [jornadas]);
 
   return (
     <SafeAreaView style={{backgroundColor: 'rgba(0, 0, 0, 0.9)', flex: 1}}>
@@ -97,7 +126,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
             contentContainerStyle={{
               alignItems: 'center',
             }}>
-            {jornadas.length == 0 ? (
+            {isLoading ? (
               <ActivityIndicator size="large" style={{marginTop: 40}} />
             ) : (
               jornadas.map((jornada, index) => (

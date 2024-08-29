@@ -10,6 +10,12 @@ import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {ArrowLeft, XCircle} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
+import {Animated} from 'react-native';
+
+const av = new Animated.Value(0);
+av.addListener(() => {
+  return;
+});
 
 type RootStackParamList = {
   Scanner: undefined;

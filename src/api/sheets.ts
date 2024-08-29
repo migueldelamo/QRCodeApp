@@ -52,6 +52,7 @@ function parseData(values: string[][]): SheetDataObject {
 export const getDataFromSheet = async () => {
   try {
     const token = await Storage.getToken();
+
     const response = await axios.get(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Principal!A1:O500`,
       {

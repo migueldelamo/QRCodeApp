@@ -10,14 +10,15 @@ import {
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {
-  ArrowLeft,
-  CheckCircle,
-  MagnifyingGlass,
-  UserCircle,
-} from 'phosphor-react-native';
+import {ArrowLeft, UserCircle} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
 import {SheetDataObject} from '../api/sheets';
+import {Animated} from 'react-native';
+
+const av = new Animated.Value(0);
+av.addListener(() => {
+  return;
+});
 
 type RootStackParamList = {
   Scanner: {data: SheetDataObject};
@@ -35,14 +36,18 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
   const {data} = route.params;
 
   const [inputValue, setinputValue] = useState<string>('');
-  const [filteredData, setFilteredData] = useState(data[jornada].values);
+  const [filteredData, setFilteredData] = useState(
+    data[jornada].values.filter(item => item > 0 && item < 1000),
+  );
 
   const handleSearch = () => {
     if (inputValue == '') {
-      setFilteredData(data[jornada].values);
+      setFilteredData(
+        data[jornada].values.filter(item => item > 0 && item < 1000),
+      );
     } else {
       const filtered = data[jornada].values.filter(
-        item => item == Number(inputValue),
+        item => item === Number(inputValue),
       );
       setFilteredData(filtered);
     }
@@ -133,34 +138,36 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
               padding: 16,
               flex: 1,
             }}>
-            {filteredData.map((item, index) => (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  height: 35,
-                  backgroundColor: 'gray',
-                  borderColor: 'white',
-                  borderWidth: 1,
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  marginVertical: 6,
-                  borderRadius: 16,
-                }}
-                key={`view-${index}`}>
-                <UserCircle color="white" size={25}></UserCircle>
-                <Text
+            {filteredData.map((item, index) => {
+              return (
+                <View
                   style={{
-                    marginLeft: 8,
-                    color: 'white',
-                    fontSize: 18,
-                    fontWeight: 500,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    height: 35,
+                    backgroundColor: 'gray',
+                    borderColor: 'white',
+                    borderWidth: 1,
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    marginVertical: 6,
+                    borderRadius: 16,
                   }}
-                  key={`text-${index}`}>
-                  Socio {item}
-                </Text>
-              </View>
-            ))}
+                  key={`view-${index}`}>
+                  <UserCircle color="white" size={25}></UserCircle>
+                  <Text
+                    style={{
+                      marginLeft: 8,
+                      color: 'white',
+                      fontSize: 18,
+                      fontWeight: 500,
+                    }}
+                    key={`text-${index}`}>
+                    Socio {item}
+                  </Text>
+                </View>
+              );
+            })}
             {filteredData.length == 0 && (
               <Text
                 style={{

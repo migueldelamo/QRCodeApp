@@ -9,6 +9,10 @@ import HomeScreen from './src/components/HomeScreen';
 import {JornadaProvider} from './src/context/JornadaContext';
 import InformationScreen from './src/components/InformationScreen';
 const Stack = createStackNavigator();
+import {LogBox} from 'react-native';
+
+// Deshabilitar todas las alertas de advertencia visuales
+LogBox.ignoreAllLogs(true);
 
 function App() {
   return (
