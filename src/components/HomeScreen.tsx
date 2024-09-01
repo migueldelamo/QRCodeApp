@@ -12,10 +12,11 @@ import {useJornada} from '../context/JornadaContext';
 import React, {useState, useRef, useCallback, useEffect} from 'react';
 
 import {RouteProp, useFocusEffect} from '@react-navigation/native';
-import {Storage} from '../storage/storage';
-import {SheetDataObject, getAccessToken, getDataFromSheet} from '../api/sheets';
+import {Data, Storage} from '../storage/storage';
+// import {SheetDataObject, getAccessToken, getDataFromSheet} from '../api/sheets';
 import {Camera} from 'react-native-vision-camera';
 import {Animated} from 'react-native';
+import {ArrowsCounterClockwise} from 'phosphor-react-native';
 
 const av = new Animated.Value(0);
 av.addListener(() => {
@@ -34,59 +35,65 @@ type HomeScreenProps = {
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const {setJornada} = useJornada();
   const [jornadas, setJornadas] = useState<string[]>([]);
-  const [hasPermission, setHasPermission] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const accessToken = useRef<string>('');
-  const sheetData = useRef<SheetDataObject>();
+  const [hasCameraPermission, setHasCameraPermission] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+  // const accessToken = useRef<string>('');
+  const data = useRef<Data>();
 
-  // Solicitar permiso para usar la cámara
+  // Permiso para usar la cámara
   useEffect(() => {
     (async () => {
       const status = await Camera.requestCameraPermission();
-      setHasPermission(status === 'granted');
+      setHasCameraPermission(status === 'granted');
     })();
   }, []);
 
+  const getData = async () => {
+    setIsLoading(true);
+    const storageData = await Storage.getData();
+    if (storageData.data && !storageData.error) {
+      data.current = storageData.data;
+      setJornadas(Object.keys(storageData.data));
+    } else {
+      setError(true);
+    }
+    setIsLoading(false);
+    // try {
+    //   setIsLoading(true);
+    //   const token = await Storage.getToken();
+    //   if (token) {
+    //     accessToken.current = token;
+    //   } else {
+    //     const newToken = await getAccessToken();
+    //     if (newToken) {
+    //       accessToken.current = newToken;
+    //     } else {
+    //       throw 'Error al obtener el token';
+    //     }
+    //   }
+
+    //   if (accessToken.current) {
+    //     const response = await getDataFromSheet();
+    //     if (response) {
+    //       data.current = response;
+    //       setJornadas(Object.keys(response));
+    //     } else {
+    //       throw 'Error al obtener los datos';
+    //     }
+    //   }
+    // } catch (error) {
+    //   setError(true);
+    // } finally {
+    //   setIsLoading(false);
+    // }
+  };
+
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-      (async () => {
-        try {
-          setIsLoading(true);
-          const token = await Storage.getToken();
-          if (token) {
-            accessToken.current = token;
-          } else {
-            const newToken = await getAccessToken();
-            if (newToken) {
-              accessToken.current = newToken;
-              await Storage.setToken(newToken); // Asegúrate de almacenar el nuevo token
-            }
-          }
-
-          if (accessToken.current) {
-            const response = await getDataFromSheet();
-            if (response && isActive) {
-              sheetData.current = response;
-              setJornadas(Object.keys(response));
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        } finally {
-          if (isActive) setIsLoading(false);
-        }
-      })();
-
-      return () => {
-        isActive = false;
-      };
+      getData();
     }, []),
   );
-
-  useEffect(() => {
-    if (jornadas.length > 0) setIsLoading(false);
-  }, [jornadas]);
 
   return (
     <SafeAreaView style={{backgroundColor: 'rgba(0, 0, 0, 0.9)', flex: 1}}>
@@ -112,24 +119,58 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
             padding: 20,
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
           }}>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              marginBottom: 20,
-              color: 'white',
-            }}>
-            Selecciona una jornada
-          </Text>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              alignItems: 'center',
-            }}>
-            {isLoading ? (
-              <ActivityIndicator size="large" style={{marginTop: 40}} />
-            ) : (
-              jornadas.map((jornada, index) => (
+          {jornadas.length > 0 && (
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: 'bold',
+                marginBottom: 20,
+                color: 'white',
+              }}>
+              Selecciona una jornada
+            </Text>
+          )}
+          {isLoading ? (
+            <ActivityIndicator size="large" style={{marginTop: 40}} />
+          ) : error ? (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignContent: 'center',
+                alignItems: 'center',
+              }}>
+              <Text
+                style={{
+                  color: 'white',
+                  textAlign: 'center',
+                  fontSize: 18,
+                  fontWeight: 600,
+                }}>
+                No se han podido obtener las jornadas. Haz click para volver a
+                cargar
+              </Text>
+              <Pressable
+                style={{
+                  justifyContent: 'center',
+                  marginTop: 16,
+                  backgroundColor: 'white',
+                  padding: 16,
+                  width: 100,
+                  borderRadius: 99,
+                  alignItems: 'center',
+                }}
+                onPress={getData}>
+                <ArrowsCounterClockwise color="black"></ArrowsCounterClockwise>
+              </Pressable>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                alignItems: 'center',
+              }}>
+              {jornadas.map((jornada, index) => (
                 <Pressable
                   key={index}
                   style={{
@@ -141,12 +182,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
                     alignItems: 'center',
                   }}
                   onPress={() => {
-                    if (sheetData.current?.[jornada]) {
+                    if (data.current?.[jornada]) {
                       setJornada(jornada);
                       navigation.navigate('Scanner');
                     }
                   }}
-                  disabled={!hasPermission}>
+                  disabled={!hasCameraPermission}>
                   <Text
                     style={{
                       color: 'white',
@@ -155,9 +196,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
                     {jornada}
                   </Text>
                 </Pressable>
-              ))
-            )}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </ImageBackground>
     </SafeAreaView>

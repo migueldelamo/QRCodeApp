@@ -5,18 +5,12 @@ import {
   useCameraDevices,
   useCodeScanner,
 } from 'react-native-vision-camera';
-import axios from 'axios';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RouteProp, useFocusEffect} from '@react-navigation/native';
 import {ArrowLeft, CameraRotate} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
-import {Storage} from '../storage/storage';
-import {
-  getDataFromSheet,
-  getAccessToken,
-  SheetDataObject,
-  SPREADSHEET_ID,
-} from '../api/sheets';
+import {Data, Storage} from '../storage/storage';
+
 import {Animated} from 'react-native';
 
 const av = new Animated.Value(0);
@@ -28,7 +22,7 @@ type RootStackParamList = {
   Scanner: undefined;
   Success: {scannedData: number};
   Failure: {scannedData: number};
-  Information: {data: SheetDataObject};
+  Information: {data: Data};
 };
 
 type QRCodeScannerProps = {
@@ -42,24 +36,15 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
 
   const [isScannerActive, setIsScannerActive] = useState(true);
 
-  const data = useRef<SheetDataObject>({});
+  const data = useRef<Data>({});
   const devices = useCameraDevices();
   const [device, setDevice] = useState(devices[0]);
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const response = await getDataFromSheet();
-        if (response) {
-          data.current = response;
-          setIsScannerActive(true);
-        }
-        const token = await Storage.getToken();
-        if (token) {
-          accessToken.current = token;
-        } else {
-          await getAccessToken();
-        }
+        const currentData = await Storage.getData();
+        data.current = currentData.data;
       })();
     }, []),
   );
@@ -74,65 +59,16 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
         const scannedData = parseInt(value);
         // const scannedData = 978;
         if (
-          (jornada && data.current[jornada].values.includes(scannedData)) ||
+          (jornada && data.current[jornada].includes(scannedData)) ||
           scannedData < 0 ||
           scannedData > 1000
         ) {
           navigation.navigate('Failure', {scannedData});
         } else {
-          try {
-            const response = await axios.post(
-              `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
-
-              {
-                requests: [
-                  {
-                    updateCells: {
-                      rows: [
-                        {
-                          values: [
-                            {
-                              userEnteredValue: {
-                                numberValue: scannedData,
-                              },
-                            },
-                          ],
-                        },
-                      ],
-                      start: {
-                        sheetId: 0,
-                        rowIndex:
-                          data.current[jornada].values.filter(item => item > 0)
-                            .length + 1, // Índice de la fila (0 para la primera fila, 1 para la segunda, etc.)
-                        columnIndex: data.current[jornada].colIndex, // Índice de la columna (0 para la primera columna, 1 para la segunda, etc.)
-                      },
-                      fields: 'userEnteredValue',
-                    },
-                  },
-                ],
-                includeSpreadsheetInResponse: true,
-                responseIncludeGridData: false,
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${accessToken.current}`,
-                },
-              },
-            );
-            if (response.status === 200) {
-              navigation.navigate('Success', {scannedData});
-              getDataFromSheet();
-            } else if (response.status === 401) {
-              await getAccessToken();
-            }
-          } catch (error: any) {
-            const token = await getAccessToken();
-            if (token) accessToken.current = token;
-            const dataSheet = await getDataFromSheet();
-            if (dataSheet) data.current = dataSheet;
-            setIsScannerActive(true);
-          }
+          Storage.setData({
+            ...data.current,
+            [jornada]: [...data.current[jornada], scannedData],
+          });
         }
       }
     },

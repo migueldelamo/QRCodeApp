@@ -12,8 +12,8 @@ import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {ArrowLeft, UserCircle} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
-import {SheetDataObject} from '../api/sheets';
 import {Animated} from 'react-native';
+import {Data} from '../storage/storage';
 
 const av = new Animated.Value(0);
 av.addListener(() => {
@@ -21,7 +21,7 @@ av.addListener(() => {
 });
 
 type RootStackParamList = {
-  Scanner: {data: SheetDataObject};
+  Scanner: {data: Data};
 };
 
 type InformationScreenProps = {
@@ -37,16 +37,14 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
 
   const [inputValue, setinputValue] = useState<string>('');
   const [filteredData, setFilteredData] = useState(
-    data[jornada].values.filter(item => item > 0 && item < 1000),
+    data[jornada].filter(item => item > 0 && item < 1000),
   );
 
   const handleSearch = () => {
     if (inputValue == '') {
-      setFilteredData(
-        data[jornada].values.filter(item => item > 0 && item < 1000),
-      );
+      setFilteredData(data[jornada].filter(item => item > 0 && item < 1000));
     } else {
-      const filtered = data[jornada].values.filter(
+      const filtered = data[jornada].filter(
         item => item === Number(inputValue),
       );
       setFilteredData(filtered);
