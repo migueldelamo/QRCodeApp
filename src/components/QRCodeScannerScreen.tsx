@@ -20,6 +20,7 @@ av.addListener(() => {
 
 type RootStackParamList = {
   Scanner: undefined;
+  Home: undefined;
   Success: {scannedData: number};
   Failure: {scannedData: number};
   Information: {data: Data};
@@ -32,7 +33,6 @@ type QRCodeScannerProps = {
 
 const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
   const {jornada} = useJornada();
-  const accessToken = useRef<string>('');
 
   const [isScannerActive, setIsScannerActive] = useState(true);
 
@@ -43,8 +43,13 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const currentData = await Storage.getData();
-        data.current = currentData.data;
+        const storageData = await Storage.getData();
+        if (storageData.error) {
+          navigation.navigate('Home');
+          return;
+        }
+        setIsScannerActive(true);
+        data.current = storageData.data;
       })();
     }, []),
   );
@@ -69,6 +74,7 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
             ...data.current,
             [jornada]: [...data.current[jornada], scannedData],
           });
+          navigation.navigate('Success', {scannedData});
         }
       }
     },
@@ -160,7 +166,9 @@ const QRCodeScannerScreen = ({navigation}: QRCodeScannerProps) => {
           onPress={() => {
             navigation.navigate('Information', {data: data.current});
           }}>
-          <Text style={{fontSize: 24, color: 'black'}}>{jornada}</Text>
+          <Text style={{fontSize: 24, fontWeight: 600, color: 'black'}}>
+            {jornada}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

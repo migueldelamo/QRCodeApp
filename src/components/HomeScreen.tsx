@@ -7,13 +7,13 @@ import {
   SafeAreaView,
   ImageBackground,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {useJornada} from '../context/JornadaContext';
-import React, {useState, useRef, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 
 import {RouteProp, useFocusEffect} from '@react-navigation/native';
-import {Data, Storage} from '../storage/storage';
-// import {SheetDataObject, getAccessToken, getDataFromSheet} from '../api/sheets';
+import {Storage} from '../storage/storage';
 import {Camera} from 'react-native-vision-camera';
 import {Animated} from 'react-native';
 import {ArrowsCounterClockwise} from 'phosphor-react-native';
@@ -39,7 +39,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   // const accessToken = useRef<string>('');
-  const data = useRef<Data>();
 
   // Permiso para usar la cámara
   useEffect(() => {
@@ -50,48 +49,48 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   }, []);
 
   const getData = async () => {
-    setIsLoading(true);
     const storageData = await Storage.getData();
-    if (storageData.data && !storageData.error) {
-      data.current = storageData.data;
-      setJornadas(Object.keys(storageData.data));
-    } else {
+    if (storageData.error) {
       setError(true);
+      return;
     }
-    setIsLoading(false);
-    // try {
-    //   setIsLoading(true);
-    //   const token = await Storage.getToken();
-    //   if (token) {
-    //     accessToken.current = token;
-    //   } else {
-    //     const newToken = await getAccessToken();
-    //     if (newToken) {
-    //       accessToken.current = newToken;
-    //     } else {
-    //       throw 'Error al obtener el token';
-    //     }
-    //   }
 
-    //   if (accessToken.current) {
-    //     const response = await getDataFromSheet();
-    //     if (response) {
-    //       data.current = response;
-    //       setJornadas(Object.keys(response));
-    //     } else {
-    //       throw 'Error al obtener los datos';
-    //     }
-    //   }
-    // } catch (error) {
-    //   setError(true);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    if (storageData.data) {
+      setJornadas(Object.keys(storageData.data));
+    }
+  };
+
+  const handleReset = async () => {
+    Alert.alert(
+      'Resetear jornadas',
+      '¿Estás seguro de que quieres resetear todas las jornadas? Esta acción no se podrá deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'default',
+        },
+        {
+          text: 'Resetear',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoading(true);
+            await Storage.resetData();
+            await getData();
+            setIsLoading(false);
+          },
+        },
+      ],
+      {cancelable: false},
+    );
   };
 
   useFocusEffect(
     useCallback(() => {
-      getData();
+      (async () => {
+        setIsLoading(true);
+        await getData();
+        setIsLoading(false);
+      })();
     }, []),
   );
 
@@ -182,10 +181,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
                     alignItems: 'center',
                   }}
                   onPress={() => {
-                    if (data.current?.[jornada]) {
-                      setJornada(jornada);
-                      navigation.navigate('Scanner');
-                    }
+                    setJornada(jornada);
+                    navigation.navigate('Scanner');
                   }}
                   disabled={!hasCameraPermission}>
                   <Text
@@ -199,6 +196,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
               ))}
             </ScrollView>
           )}
+          <Pressable
+            style={{
+              backgroundColor: '#E71C22',
+              padding: 20,
+              marginTop: 20,
+              borderRadius: 16,
+              width: 250,
+              alignItems: 'center',
+              borderColor: 'white',
+              borderWidth: 5,
+            }}
+            onPress={() => {
+              handleReset();
+            }}>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 20,
+                fontWeight: 600,
+              }}>
+              Resetear
+            </Text>
+          </Pressable>
         </View>
       </ImageBackground>
     </SafeAreaView>

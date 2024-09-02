@@ -4,21 +4,21 @@ export type Data = {[key: string]: number[]};
 type Response = {data?: any; error: boolean};
 
 const INITIAL_DATA = {
-  jornada2: [],
-  jornada4: [],
-  jornada6: [],
-  jornada8: [],
-  jornada9: [],
-  jornada11: [],
-  jornada13: [],
-  jornada15: [],
-  jornada16: [],
-  jornada18: [],
-  jornada20: [],
-  jornada22: [],
-  jornada25: [],
-  jornada27: [],
-  jornada29: [],
+  'Jornada 2': [],
+  'Jornada 4': [],
+  'Jornada 6': [],
+  'Jornada 8': [],
+  'Jornada 9': [],
+  'Jornada 11': [],
+  'Jornada 13': [],
+  'Jornada 15': [],
+  'Jornada 16': [],
+  'Jornada 18': [],
+  'Jornada 20': [],
+  'Jornada 22': [],
+  'Jornada 25': [],
+  'Jornada 27': [],
+  'Jornada 29': [],
 };
 
 export const Storage = {
@@ -51,11 +51,13 @@ export const Storage = {
       return ['Error', e];
     }
   },
+  resetData: async () => {
+    await AsyncStorage.setItem('@data', JSON.stringify(INITIAL_DATA));
+  },
 
   getData: async (): Promise<Response> => {
     try {
       const jsonValue = await AsyncStorage.getItem('@data');
-      let data: Data;
       if (jsonValue != null) {
         return {data: JSON.parse(jsonValue), error: false};
       } else {

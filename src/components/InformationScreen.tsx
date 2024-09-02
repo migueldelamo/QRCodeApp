@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,15 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
+  Alert,
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {ArrowLeft, UserCircle} from 'phosphor-react-native';
+import {ArrowLeft, UserCircle, XCircle} from 'phosphor-react-native';
 import {useJornada} from '../context/JornadaContext';
 import {Animated} from 'react-native';
 import {Data} from '../storage/storage';
+import {Storage} from '../storage/storage';
 
 const av = new Animated.Value(0);
 av.addListener(() => {
@@ -33,22 +35,47 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
   route,
 }) => {
   const {jornada} = useJornada();
-  const {data} = route.params;
+  const data = useRef(route.params.data);
 
   const [inputValue, setinputValue] = useState<string>('');
   const [filteredData, setFilteredData] = useState(
-    data[jornada].filter(item => item > 0 && item < 1000),
+    data.current[jornada].filter(item => item > 0 && item < 1000),
   );
 
   const handleSearch = () => {
     if (inputValue == '') {
-      setFilteredData(data[jornada].filter(item => item > 0 && item < 1000));
+      setFilteredData(
+        data.current[jornada].filter(item => item > 0 && item < 1000),
+      );
     } else {
-      const filtered = data[jornada].filter(
+      const filtered = data.current[jornada].filter(
         item => item === Number(inputValue),
       );
       setFilteredData(filtered);
     }
+  };
+
+  const handleReset = async () => {
+    Alert.alert(
+      'Resetear jornadas',
+      '¿Estás seguro de que quieres resetear todas las jornadas? Esta acción no se podrá deshacer.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'default',
+        },
+        {
+          text: 'Resetear',
+          style: 'destructive',
+          onPress: async () => {
+            data.current[jornada] = [];
+            await Storage.setData(data.current);
+            handleSearch();
+          },
+        },
+      ],
+      {cancelable: false},
+    );
   };
 
   useEffect(() => {
@@ -101,14 +128,25 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
           }}></Pressable>
       </View>
       <ImageBackground
-        style={{flex: 1}}
-        resizeMode="cover"
+        style={{
+          flex: 1,
+        }}
         source={{uri: 'escudo_futsal_villarrobledo'}}>
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          }}
+        />
+
         <View
           style={{
             flexDirection: 'row',
             padding: 16,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
           }}>
           <TextInput
             style={{
@@ -125,14 +163,9 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
             keyboardType="numeric"
           />
         </View>
-
-        <ScrollView
-          style={{flex: 1}}
-          showsVerticalScrollIndicator={false}
-          bounces={false}>
+        <ScrollView bounces={false}>
           <View
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
               padding: 16,
               flex: 1,
             }}>
@@ -142,42 +175,85 @@ const InformationScreen: React.FC<InformationScreenProps> = ({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    height: 35,
                     backgroundColor: 'gray',
                     borderColor: 'white',
                     borderWidth: 1,
-                    paddingVertical: 6,
+                    paddingVertical: 8,
                     paddingHorizontal: 12,
                     marginVertical: 6,
                     borderRadius: 16,
                   }}
                   key={`view-${index}`}>
-                  <UserCircle color="white" size={25}></UserCircle>
-                  <Text
+                  <View style={{flex: 1, flexDirection: 'row'}}>
+                    <UserCircle color="white" size={25}></UserCircle>
+                    <Text
+                      style={{
+                        marginLeft: 8,
+                        color: 'white',
+                        fontSize: 18,
+                        fontWeight: 500,
+                      }}
+                      key={`text-${index}`}>
+                      Socio {item}
+                    </Text>
+                  </View>
+                  <Pressable
                     style={{
-                      marginLeft: 8,
-                      color: 'white',
-                      fontSize: 18,
-                      fontWeight: 500,
+                      borderRadius: 99,
                     }}
-                    key={`text-${index}`}>
-                    Socio {item}
-                  </Text>
+                    onPress={async () => {
+                      data.current[jornada] = filteredData.filter(
+                        elm => elm != item,
+                      );
+                      await Storage.setData(data.current);
+                      handleSearch();
+                    }}>
+                    <XCircle color="white" size={25} weight="fill"></XCircle>
+                  </Pressable>
                 </View>
               );
             })}
-            {filteredData.length == 0 && (
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 18,
-                  fontWeight: 500,
-                }}>
-                No se ha encontrado ningún socio
-              </Text>
-            )}
           </View>
         </ScrollView>
+        <Text
+          style={{
+            marginTop: 10,
+            marginBottom: 20,
+            marginRight: 16,
+            textAlign: 'right',
+            color: 'white',
+            fontSize: 16,
+          }}>
+          {filteredData.length > 0
+            ? `${filteredData.length} resultado(s)`
+            : 'No se ha encontrado ningún socio'}
+        </Text>
+        <Pressable
+          style={{
+            backgroundColor: '#E71C22',
+            padding: 20,
+            borderRadius: 16,
+            width: 250,
+            alignItems: 'center',
+            alignContent: 'center',
+            justifyContent: 'center',
+            borderColor: 'white',
+            borderWidth: 5,
+            alignSelf: 'center',
+            marginBottom: 20,
+          }}
+          onPress={() => {
+            handleReset();
+          }}>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 20,
+              fontWeight: 600,
+            }}>
+            Resetear jornada
+          </Text>
+        </Pressable>
       </ImageBackground>
     </SafeAreaView>
   );

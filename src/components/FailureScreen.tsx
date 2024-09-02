@@ -91,12 +91,12 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({navigation, route}) => {
         />
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            <XCircle color="red" size={150} />
+            <XCircle color="#E71C22" size={150} />
             <Text
               style={{
                 textAlign: 'center',
                 fontSize: 30,
-                color: 'red',
+                color: '#E71C22',
                 fontWeight: 900,
               }}>
               ¡No puede pasar!
@@ -105,7 +105,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({navigation, route}) => {
               style={{
                 textAlign: 'center',
                 fontSize: 16,
-                color: 'red',
+                color: '#E71C22',
                 fontWeight: 600,
                 marginTop: 8,
               }}>
