@@ -17,6 +17,7 @@ import {Storage} from '../storage/storage';
 import {Camera} from 'react-native-vision-camera';
 import {Animated} from 'react-native';
 import {ArrowsCounterClockwise} from 'phosphor-react-native';
+import {PermissionsAndroid, Platform} from 'react-native';
 
 const av = new Animated.Value(0);
 av.addListener(() => {
@@ -42,10 +43,35 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
 
   // Permiso para usar la cámara
   useEffect(() => {
-    (async () => {
-      const status = await Camera.requestCameraPermission();
-      setHasCameraPermission(status === 'granted');
-    })();
+    const requestCameraPermission = async () => {
+      if (Platform.OS === 'ios') {
+        // Para iOS, usa el método habitual de solicitud de permisos
+        const status = await Camera.requestCameraPermission();
+        setHasCameraPermission(status === 'granted');
+      } else if (Platform.OS === 'android') {
+        // Para Android, usa PermissionsAndroid para solicitar permisos
+        try {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.CAMERA,
+            {
+              title: 'Permiso de cámara requerido',
+              message:
+                'Esta aplicación necesita acceso a la cámara para escanear códigos QR.',
+              buttonNeutral: 'Preguntar más tarde',
+              buttonNegative: 'Cancelar',
+              buttonPositive: 'Aceptar',
+            },
+          );
+          setHasCameraPermission(
+            granted === PermissionsAndroid.RESULTS.GRANTED,
+          );
+        } catch (err) {
+          console.warn(err);
+        }
+      }
+    };
+
+    requestCameraPermission();
   }, []);
 
   const getData = async () => {
